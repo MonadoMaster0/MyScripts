@@ -106,8 +106,6 @@ class Player(pygame.sprite.Sprite):
 
         return kickmode
 
-
-
 class Ground(pygame.sprite.Sprite):
     def __init__(self, pos) -> None:
         super().__init__()
