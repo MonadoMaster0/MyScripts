@@ -1,47 +1,62 @@
-import cv2
-import numpy as np
-from pylab import imshow, show, subplot, close
+import sys, random, pygame
+from pygame.math import Vector2 as vector
 
-res = int(input("Enter resolution: "))
+WIDTH, HEIGHT = WINSIZE = 1280, 720
+FPS = 60
+pygame.init()
+SCREEN = pygame.display.set_mode(WINSIZE)
 
-blank = np.ones((res,res), np.uint8)
+def draw_rect(screen: pygame.Surface, pos):
+    surf = pygame.surface.Surface((800,800))
+    surf.fill('white')
+    rect = surf.get_rect(topleft=pos)
+    screen.blit(surf, rect)
+    return surf
 
-def fractal(image: np.ndarray, order: int):
-    
-    # Initialized variables
-    thirds = []
-    fulls = []
-    third = image.shape[0]
-    fract = np.zeros(image.shape, np.uint8)
-    
-    # Make small boxes
-    for _ in range(order):
-        full = np.ones((third,third), np.uint8) # empty box
-        third = third//3
-        box = np.zeros((third,third), np.uint8) # box filler
-        full[third:2*third, third:2*third] = box # full box
-        thirds.append(full)
+def draw_rp(points: list, size):
+    rm_x = random.random()
+    rm_y = random.random()
+    st_point = points[0]
+    return (st_point[0]+size*rm_x, st_point[1]+size*rm_y)
+
+def generate_sier(corners: list, size):
+    rm_point = vector(draw_rp(corners, size))
+    rm_corner = vector(random.choice(corners))
+    points = []
+    for _ in range(100000):
+        p = rm_point+(rm_corner-rm_point)/2
+        points.append(p)
+        rm_point = p
+        prev_corner = rm_corner
+        while prev_corner == rm_corner:
+            rm_corner = random.choice(corners)
+    return points
+
+def drawpoints(screen: pygame.surface,points: list):
+    for point in points:
+        pygame.draw.circle(screen, 'black', point, 1)
+
+
+def main():
+    rect_size = 800
+    st_point = (240, 114)
+    corners = [st_point, (st_point[0]+rect_size,st_point[1]), (st_point[0],st_point[1]+rect_size), (st_point[0]+rect_size,st_point[1]+rect_size)]
+    sier_points = generate_sier(corners, rect_size)
+    clock = pygame.time.Clock()
+    while True:
+        clock.tick(FPS)
+        SCREEN.fill('black')
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+        rectangle = draw_rect(SCREEN, (240, 114))
+        for point in sier_points:
+            pygame.draw.circle(SCREEN, 'black', point, 1)
         
-    # Making full size images from boxes
-    try:
-        for item in thirds:
-            row = np.concatenate([item for _ in range(image.shape[0]//item.shape[0])], axis=1) # add images vertically
-            im = np.concatenate([row for _ in range(image.shape[0]//item.shape[0])], axis=0) # add images horizontally
-            fulls.append(im if im.shape == image.shape else cv2.resize(im, image.shape, interpolation=cv2.INTER_NEAREST))
-    except ZeroDivisionError:
-        print(f'Rendűségi hiba! A fraktál rendűsége nem lehet nagyobb, mint {np.log(image.shape[0])//np.log(3)} (képméret alapján)')
-    
-    # Merging images
-    for img in fulls:
-        fract = cv2.add(fract, img)
-        # fract = cv2.cvtColor(fract, cv2.COLOR_BGR2GRAY)
-        
-    return cv2.threshold(fract, 1, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)[1], fulls
-        
 
-# fract = np.ones((1,1), np.uint8)
-fract, fulls = fractal(blank, 10)
-# fract = np.concatenate([fract, fract], axis=1)
 
-imshow(fract, 'gray')
-show()
+
+        pygame.display.update()
+
+main()
